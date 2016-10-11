@@ -29,9 +29,12 @@ LIBKEA_DOWNLOAD := $(LIBKEA_VERSION).zip
 MDBSQLITE_DIR := mdb-sqlite-1.0.2
 MDBSQLITE_DOWNLOAD := $(MDBSQLITE_DIR).tar.bz2
 MDBSQLITE_URL := https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/mdb-sqlite/
+GTA_DOWNLOAD := libgta-1.0.8.tar.xz
+GTA_URL := http://download.savannah.nongnu.org/releases/gta/
+GTA_DIR := libgta-1.0.8
 
 # Dependencies satisfied by packages.
-DEPS_PACKAGES := python-numpy python-dev libpq-dev libpng12-dev libjpeg-dev libgif-dev liblzma-dev libgeos-dev libcurl4-gnutls-dev libproj-dev libxml2-dev libexpat-dev libxerces-c-dev libnetcdf-dev netcdf-bin libpoppler-dev libspatialite-dev gpsbabel swig libhdf4-alt-dev libpodofo-dev poppler-utils libfreexl-dev unixodbc-dev libwebp-dev libepsilon-dev libgta-dev liblcms2-2 libpcre3-dev
+DEPS_PACKAGES := python-numpy python-dev libpq-dev libpng12-dev libjpeg-dev libgif-dev liblzma-dev libgeos-dev libcurl4-gnutls-dev libproj-dev libxml2-dev libexpat-dev libxerces-c-dev libnetcdf-dev netcdf-bin libpoppler-dev libspatialite-dev gpsbabel swig libhdf4-alt-dev libpodofo-dev poppler-utils libfreexl-dev unixodbc-dev libwebp-dev libepsilon-dev liblcms2-2 libpcre3-dev
 # Packages required by mongo.
 MONGO_PACKAGES := libboost-regex-dev libboost-system-dev libboost-thread-dev libboost-regex1.55.0 libboost-system1.55.0 libboost-thread1.55.0
 
@@ -65,7 +68,7 @@ NPROC := $(shell nproc)
 
 install: $(GDAL_CONFIG)
 
-$(GDAL_CONFIG): /tmp/gdal $(MONGO_DEV) $(OPENJPEG_DEV) $(FILEGDBAPI_DEV) $(LIBECWJ2_DEV) $(MRSID_DEV) $(LIBKML_DEV) $(LIBKEA_DEV) $(MDBSQLITE_DEV) $(JAVA) $(DEPS_DEV) $(ANT)
+$(GDAL_CONFIG): /tmp/gdal $(MONGO_DEV) $(OPENJPEG_DEV) $(FILEGDBAPI_DEV) $(LIBECWJ2_DEV) $(MRSID_DEV) $(LIBKML_DEV) $(LIBKEA_DEV) $(MDBSQLITE_DEV) $(GTA_DEV) $(JAVA) $(DEPS_DEV) $(ANT)
 	cd /tmp/gdal/gdal \
 	&& ./configure \
 		--prefix=/usr/local \
@@ -91,7 +94,7 @@ $(GDAL_CONFIG): /tmp/gdal $(MONGO_DEV) $(OPENJPEG_DEV) $(FILEGDBAPI_DEV) $(LIBEC
 		--with-mongocxx=/usr/local $(USE_GRASS) \
 	&& make -j$(NPROC) \
 	&& cd swig/java \
-	&& sed -i "s/JAVA_HOME =.*/JAVA_HOME = \/usr\/lib\/jvm\/java-7-openjdk-amd64\//" java.opt \
+	&& sed -i "s/JAVA_HOME =.*/JAVA_HOME = \/usr\/lib\/jvm\/java-7-openjdk-amd64\/jre\//" java.opt \
 	&& make -j$(NPROC) \
 	&& cd ../../swig/perl \
 	&& make generate \
@@ -145,26 +148,25 @@ $(MRSID_DEV): /tmp/$(MRSID_DOWNLOAD)
 	$(WGET) --no-verbose http://s3.amazonaws.com/etc-data.koordinates.com/gdal-travisci/$(MRSID_DOWNLOAD) -O /tmp/$(MRSID_DOWNLOAD) \
 	&& touch -c /tmp/$(MRSID_DOWNLOAD)
 
-$(LIBKML_DEV): /tmp/$(LIBKML_DOWNLOAD)
-	tar -C /tmp -xzf /tmp/$(LIBKML_DOWNLOAD) \
-	&& cp -r /tmp/install-libkml/include/* /usr/local/include \
-	&& cp -r /tmp/install-libkml/lib/* /usr/local/lib
-/tmp/$(LIBKML_DOWNLOAD): $(WGET)
-	$(WGET) --no-verbose http://s3.amazonaws.com/etc-data.koordinates.com/gdal-travisci/$(LIBKML_DOWNLOAD) -O /tmp/$(LIBKML_DOWNLOAD) \
-	&& touch -c /tmp/$(LIBKML_DOWNLOAD)
+$(LIBKML_DEV): /tmp/apt-updated
+	apt-get install -y libkml-dev && touch -c $(LIBKML_DEV)
 
 $(LIBKEA_DEV): /tmp/$(LIBKEA_DOWNLOAD) $(LIBHDF5_DEV) $(UNZIP) $(CMAKE)
 	$(UNZIP) -o -d /tmp /tmp/$(LIBKEA_DOWNLOAD) \
 	&& cd /tmp/chchrsc-kealib-$(LIBKEA_VERSION)/trunk \
-	&& cmake . -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DHDF5_INCLUDE_DIR=/usr/include -DHDF5_LIB_PATH=/usr/lib -DLIBKEA_WITH_GDAL=OFF \
+	&& cmake . -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DHDF5_INCLUDE_DIR=/usr/include/hdf5/serial -DHDF5_LIB_PATH=/usr/lib/x86_64-linux-gnu -DLIBKEA_WITH_GDAL=OFF \
 	&& make -j$(NPROC) \
 	&& make install \
 	&& ldconfig
 /tmp/$(LIBKEA_DOWNLOAD): $(WGET)
 	$(WGET) --no-verbose https://bitbucket.org/chchrsc/kealib/get/$(LIBKEA_DOWNLOAD) -O /tmp/$(LIBKEA_DOWNLOAD) \
 	&& touch -c /tmp/$(LIBKEA_DOWNLOAD)
+
 $(LIBHDF5_DEV): /tmp/apt-updated
-	apt-get install -y libhdf5-serial-dev && touch -c $(LIBHDF5_DEV)
+	apt-get install -y libhdf5-dev && touch -c $(LIBHDF5_DEV) \
+	&& ln -s /usr/lib/x86_64-linux-gnu/libhdf5_serial.so /usr/lib/x86_64-linux-gnu/libhdf5.so \
+	&& ln -s /usr/lib/x86_64-linux-gnu/libhdf5_serial_hl.so /usr/lib/x86_64-linux-gnu/libhdf5_hl.so \
+	&& ln -s /usr/include/hdf5/serial/* /usr/include/
 
 $(MDBSQLITE_DEV): /tmp/$(MDBSQLITE_DOWNLOAD) $(JAVA)
 	tar -C /tmp -xjf /tmp/$(MDBSQLITE_DOWNLOAD) \
@@ -173,10 +175,24 @@ $(MDBSQLITE_DEV): /tmp/$(MDBSQLITE_DOWNLOAD) $(JAVA)
 	$(WGET) --no-verbose $(MDBSQLITE_URL)$(MDBSQLITE_DOWNLOAD) -O /tmp/$(MDBSQLITE_DOWNLOAD) \
 	&& touch -c /tmp/$(MDBSQLITE_DOWNLOAD)
 
-$(JAVA): /tmp/apt-updated
-	apt-get install -y openjdk-7-jdk && touch -c $(JAVA)
+$(GTA_DEV): /tmp/$(GTA_DOWNLOAD)
+	tar -C /tmp -zxf /tmp/$(GTA_DOWNLOAD) \
+	&& cd /tmp/$(GTA_DIR) \
+	&& autoreconf -i \
+	&& ./configure \
+	&& make \
+	&& make install \
+	&& ldconfig
+/tmp/$(GTA_DOWNLOAD): $(WGET)
+	$(WGET) --no-verbose $(GTA_URL)$(GTA_DOWNLOAD) -O /tmp/$(GTA_DOWNLOAD) \
+	&& touch -c /tmp/$(GTA_DOWNLOAD)
 
-$(DEPS_DEV): /etc/apt/sources.list.d/ubuntugis-ubuntugis-unstable-trusty.list /etc/apt/sources.list.d/marlam-gta-trusty.list
+$(JAVA): /tmp/apt-updated
+	apt-get install -y openjdk-7-jdk && touch -c $(JAVA) \
+	&& ln -s /usr/lib/jvm/java-7-openjdk-amd64/jre/lib/amd64/server/libjvm.so /usr/lib/
+
+#$(DEPS_DEV): /etc/apt/sources.list.d/ubuntugis-ubuntugis-unstable-trusty.list /etc/apt/sources.list.d/marlam-gta-trusty.list
+$(DEPS_DEV): /tmp/apt-updated
 	apt-get install -y $(DEPS_PACKAGES) && touch -c $(DEPS_DEV)
 
 $(SVN): /tmp/apt-updated
@@ -222,15 +238,10 @@ clean:
 	apt-get purge -y \
 		software-properties-common \
 		subversion \
-		wget \
 		build-essential \
 		unzip \
 		cmake \
-		git \
 		scons \
-		ant \
-	&& apt-get autoremove -y \
-	&& apt-get clean \
-	&& rm -rf /var/lib/apt/lists/partial/* /tmp/* /var/tmp/*
+		ant
 
 .PHONY: install clean
