@@ -53,4 +53,4 @@ VOLUME ["/app"]
 
 
 # Output version and capabilities by default.
-CMD gdalinfo --version && gdalinfo --formats && ogrinfo --formats && go version && go-wrapper run
+CMD gdalinfo --version && gdalinfo --formats && ogrinfo --formats && go version
