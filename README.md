@@ -1,9 +1,9 @@
 # GDAL Docker Images
 
-NB: As of GDAL version 1.11.2 the image has been renamed from `homme/gdal` to
-`geodata/gdal`.
+Change from geodata/gdal:
+use debian image, and install go
 
-This is an Ubuntu derived image containing the Geospatial Data Abstraction
+This is an debian derived image containing the Geospatial Data Abstraction
 Library (GDAL) compiled with a broad range of drivers. The build process is
 based on that defined in the
 [GDAL TravisCI tests](https://github.com/OSGeo/gdal/blob/trunk/.travis.yml).
@@ -18,12 +18,12 @@ corresponds to the image `geodata/gdal:1.11.2`).
 Running the container without any arguments will by default output the GDAL
 version string as well as the supported raster and vector formats:
 
-    docker run geodata/gdal
+    docker run --rm -ti tjun/gdal-go
 
 The following command will open a bash shell in an Ubuntu based environment
 with GDAL available:
 
-    docker run -t -i geodata/gdal /bin/bash
+    docker run --rm -ti tjun/gdal-go /bin/bash
 
 You will most likely want to work with data on the host system from within the
 docker container, in which case run the container with the -v option. Assuming
@@ -31,11 +31,11 @@ you have a raster called `test.tif` in your current working directory on your
 host system, running the following command should invoke `gdalinfo` on
 `test.tif`:
 
-    docker run -v $(pwd):/data geodata/gdal gdalinfo test.tif
+    docker run -v $(pwd):/app tjun/gdal-go gdalinfo test.tif
 
-This works because the current working directory is set to `/data` in the
+This works because the current working directory is set to `/app` in the
 container, and you have mapped the current working directory on your host to
-`/data`.
+`/app`.
 
 GDAL will be run under user `nobody` in the container, so if editing or creating
 files the appropriate permissions for that user must be applied to the directory
@@ -45,4 +45,4 @@ Note that the image tagged `latest`, GDAL represents the latest code *at the
 time the image was built*. If you want to include the most up-to-date commits
 then you need to build the docker image yourself locally along these lines:
 
-    docker build -t geodata/gdal:local git://github.com/geo-data/gdal-docker/
+    docker build -t tjun/gdal-go:local git://github.com/tjun/gdal-docker-go.git
